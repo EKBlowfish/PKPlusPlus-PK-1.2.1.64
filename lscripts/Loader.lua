@@ -39,31 +39,35 @@ end
 path = "../Data/LScripts/"
 if test3 then  
 -- CHECK FILE SIZE?  
-	checkfiles = {}
-	checkfilesize = {}   
-	checkfiles[1]  = "Loader.lua"							checkfilesize[1]  = 8532 
-	checkfiles[2]  = "Main/Game.lua"					checkfilesize[2]  = 83130 
-	checkfiles[3]  = "Main/GameMP.lua"        checkfilesize[3]  = 94113 
-	checkfiles[4]  = "Main/Bot.lua"						checkfilesize[4]  = 33267 
-	checkfiles[5]  = "Main/Utils.lua"					checkfilesize[5]  = 37512 
-	checkfiles[6]  = "Classes/CPlayer.lua"		checkfilesize[6]  = 83744 
-	checkfiles[7]  = "Classes/CItem.lua"			checkfilesize[7]  = 38601 
-	checkfiles[8]  = "HUD/HUD.lua"						checkfilesize[8]  = 66683 
-	checkfiles[9]  = "HUD/HUD2.lua"						checkfilesize[9]  = 28191 
-	checkfiles[10] = "HUD/HUD3.lua"						checkfilesize[10] = 18603 
-	checkfiles[11] = "HUD/Console.lua"				checkfilesize[11] = 81902 
-	checkfiles[12] = "HUD/Console2.lua"				checkfilesize[12] = 72835 
-	-- WEAPONS
-	checkfiles[13] = "Templates/Weapons/DriverElectro.lua"					checkfilesize[13] = 29155 
-	checkfiles[14] = "Templates/Weapons/MiniGunRL.lua"							checkfilesize[14] = 19757 
-	checkfiles[15] = "Templates/Weapons/Shotgun.lua"						checkfilesize[15] = 18023
-	checkfiles[16] = "Templates/Weapons/StakeGunGL.lua"							checkfilesize[16] = 12395 
-	local quitting = false       
-	for i, checkfile in checkfiles do   
-		if not quitting and FS.File_GetSize(path..checkfile) ~= checkfilesize[i] then MsgBox("Corrupt LScripts:"..checkfile.." "..checkfilesize[i]..". PK will now quit.") quitting = true Exit(1) end
-	end 
-	checkfiles = nil
-	checkfilesize = nil
+
+local checkfiles = {
+        ["Loader.lua"]                              = 8532,
+        ["Main/Game.lua"]                           = 83130,
+        ["Main/GameMP.lua"]                         = 94113,
+        ["Main/Bot.lua"]                            = 33267,
+        ["Main/Utils.lua"]                          = 37512,
+        ["Classes/CPlayer.lua"]                     = 83744,
+        ["Classes/CItem.lua"]                       = 38601,
+        ["HUD/HUD.lua"]                             = 66683,
+        ["HUD/HUD2.lua"]                            = 28191,
+        ["HUD/HUD3.lua"]                            = 18603,
+        ["HUD/Console.lua"]                         = 81902,
+        ["HUD/Console2.lua"]                        = 72835,
+        -- WEAPONS
+        ["Templates/Weapons/DriverElectro.lua"]     = 29155,
+        ["Templates/Weapons/MiniGunRL.lua"]         = 19757,
+        ["Templates/Weapons/Shotgun.lua"]           = 18023,
+        ["Templates/Weapons/StakeGunGL.lua"]        = 12395,
+}
+
+for file, size in pairs(checkfiles) do
+        if FS.File_GetSize(path..file) ~= size then
+                MsgBox("Corrupt LScripts:"..file.." "..size..". PK will now quit.")
+                Exit(1)
+        end
+end
+
+checkfiles = nil
 end
 --================================================================
  
@@ -79,53 +83,16 @@ linker = "versionB.txt ../Data/Hitsounds ../Data/Locs Hitsounds.pak"
 FS.CreateDirectory('../Data/Hitsounds')
 FS.ExtractPack('../Data/Hitsounds.pak','../Data/Hitsounds')
 
-
--- Test for presence of extracted paks
--- Look for a known extracted file
-    local file = nil
-    local paksextracted = true
-    file = io.open ("../Data/Locs/versionB.txt","r")
-    if not file then
-		paksextracted = false
-    else
-    	io.close(file)
-    end
-
-if(not paksextracted)then
-	-- Create default external files
-	FS.CreateDirectory('../Data/Locs')
-	FS.ExtractPack('../Data/Locs.pak','../Data/Locs')
+local function ensurePackExtracted(dir, versionFile, pak)
+        local base = '../Data/'..dir
+        if FS.File_Exist(base..'/'..versionFile) then return end
+        FS.CreateDirectory(base)
+        FS.ExtractPack('../Data/'..pak, base)
 end
--- Test for presence of extracted paks
--- Look for a known extracted file
-    local file = nil
-    local paksextracted = true
-    file = io.open ("../Data/Mapview/versionA.txt","r")
-    if not file then
-		paksextracted = false
-    else
-    	io.close(file)
-    end
 
-if(not paksextracted)then
-	-- Create default external files
-	FS.CreateDirectory('../Data/Mapview')
-	FS.ExtractPack('../Data/Mapview.pak','../Data/Mapview')
-end
--- Test for presence of extracted paks
--- Look for a known extracted file
-    file = io.open ("../Data/Waypoints/versionB.txt","r")
-    if not file then
-		paksextracted = false
-    else
-    	io.close(file)
-    end
-
-if(not paksextracted)then
-	-- Create default external files
-	FS.CreateDirectory('../Data/Waypoints')
-	FS.ExtractPack('../Data/Waypoints.pak','../Data/Waypoints')
-end
+ensurePackExtracted('Locs', 'versionB.txt', 'Locs.pak')
+ensurePackExtracted('Mapview', 'versionA.txt', 'Mapview.pak')
+ensurePackExtracted('Waypoints', 'versionB.txt', 'Waypoints.pak')
 
 --collectgarbage(0)
 --Log("START LOADER.LUA : "..GetGCCount())
@@ -182,17 +149,17 @@ ToLoadClasses = {
 		"CParticleFX",
 		"CEnvironment",
 	}
-for i,v in ToLoadClasses do
-	DoFile(path.."Classes/"..v..".lua")
-	if EditorFiles then
-		DoFile(path.."Classes/"..v..".editor", false)
-	end
-	if XBOX_lev2 then
-		DoFile(path.."Classes/"..v..".xbox", false)
-	end
+for _, v in ipairs(ToLoadClasses) do
+        DoFile(path.."Classes/"..v..".lua")
+        if EditorFiles then
+                DoFile(path.."Classes/"..v..".editor", false)
+        end
+        if XBOX_lev2 then
+                DoFile(path.."Classes/"..v..".xbox", false)
+        end
 end
 
-for i,v in ToLoadClasses do
+for _, v in ipairs(ToLoadClasses) do
     Inherit(getfenv()[v],CObject)
 end
 
